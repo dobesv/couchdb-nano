@@ -3,7 +3,6 @@
 // Definitions by: Tim Jacobi <https://github.com/timjacobi>
 //                 Kovács Vince <https://github.com/vincekovacs>
 //                 Glynn Bird <https://github.com/glynnbird>
-//                 Kyle Chine <https://github.com/kylechine>
 // Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
 // TypeScript Version: 2.3
 
@@ -60,11 +59,6 @@ declare namespace nano {
   }
 
   interface DatabaseScope {
-    replication: {
-        enable(source, target, opts0, callback0?): any;
-        disable(id, rev, opts0, callback0?): any;
-        query(id, opts0, callback0?): any;
-    };
     // http://docs.couchdb.org/en/latest/api/database/common.html#put--db
     create(name: string, params?: DatabaseCreateParams, callback?: Callback<DatabaseCreateResponse>): Promise<DatabaseCreateResponse>;
     // http://docs.couchdb.org/en/latest/api/database/common.html#get--db
@@ -162,7 +156,7 @@ declare namespace nano {
     ): Promise<DocumentCopyResponse>;
     // http://docs.couchdb.org/en/latest/api/document/common.html#delete--db-docid
     destroy(docname: string, rev: string, callback?: Callback<DocumentDestroyResponse>): Promise<DocumentDestroyResponse>;
-    bulk(docs: BulkModifyDocsWrapper, callback?: Callback<DocumentBulkResponse[]>): Promise<DocumentBulkResponse[]>;
+    bulk(docs: BulkModifyDocsWrapper, callback?: Callback<DocumentInsertResponse[]>): Promise<DocumentInsertResponse[]>;
     bulk(docs: BulkModifyDocsWrapper, params: any, callback?: Callback<DocumentInsertResponse[]>): Promise<DocumentInsertResponse[]>;
     // http://docs.couchdb.org/en/latest/api/database/bulk-api.html#get--db-_all_docs
     list(callback?: Callback<DocumentListResponse<D>>): Promise<DocumentListResponse<D>>;
@@ -188,10 +182,6 @@ declare namespace nano {
       params: DocumentFetchParams,
       callback?: Callback<DocumentFetchRevsResponse>
     ): Promise<DocumentFetchRevsResponse>;
-    // http://docs.couchdb.org/en/latest/api/database/find.html#db-index
-    createIndex(indexDef: CreateIndexRequest,
-                callback?:  Callback<CreateIndexResponse>
-    ): Promise<CreateIndexResponse>;
     multipart: Multipart<D>;
     attachment: Attachment;
     // http://docs.couchdb.org/en/latest/api/ddoc/render.html#get--db-_design-ddoc-_show-func
@@ -210,20 +200,20 @@ declare namespace nano {
       callback?: Callback<any>
     ): Promise<any>;
     // http://docs.couchdb.org/en/latest/api/ddoc/render.html#put--db-_design-ddoc-_update-func-docid
-    atomic<R>(
+    atomic(
       designname: string,
       updatename: string,
       docname: string,
-      callback?: Callback<R>
-    ): Promise<R>;
+      callback?: Callback<OkResponse>
+    ): Promise<OkResponse>;
     // http://docs.couchdb.org/en/latest/api/ddoc/render.html#put--db-_design-ddoc-_update-func-docid
-    atomic<R>(
+    atomic(
       designname: string,
       updatename: string,
       docname: string,
       body: any,
-      callback?: Callback<R>
-    ): Promise<R>;
+      callback?: Callback<OkResponse>
+    ): Promise<OkResponse>;
     // http://docs.couchdb.org/en/latest/api/ddoc/render.html#put--db-_design-ddoc-_update-func-docid
     updateWithHandler(
       designname: string,
@@ -303,38 +293,6 @@ declare namespace nano {
     // http://docs.couchdb.org/en/latest/api/database/find.html#db-find
     find(query: MangoQuery, callback?: Callback<MangoResponse<D>>): Promise <MangoResponse<D>>;
     server: ServerScope;
-    //https://docs.couchdb.org/en/latest/partitioned-dbs/index.html
-    partitionInfo(partitionKey: string, callback?: Callback<PartitionInfoResponse>): Promise <PartitionInfoResponse>;
-    partitionedList(partitionKey: string, params?: DocumentFetchParams, callback?: Callback<DocumentListResponse<D>>): Promise<DocumentListResponse<D>>;
-    partitionedListAsStream(partitionKey: string, params?: DocumentFetchParams): Request;
-    partitionedFind(partitionKey: string, query: MangoQuery, callback?: Callback<MangoResponse<D>>): Promise <MangoResponse<D>>;
-    partitionedFindAsStream(partitionKey: string, query: MangoQuery): Request;
-    partitionedViewpartitionedSearch<V>(
-      partitionKey: string,
-      designname: string,
-      searchname: string,
-      params: DocumentSearchParams,
-      callback?: Callback<DocumentSearchResponse<V>>
-    ): Promise<DocumentSearchResponse<V>>;
-    partitionedSearchAsStream(
-      partitionKey: string,
-      designname: string,
-      searchname: string,
-      params: DocumentSearchParams
-    ): Request;
-    partitionedView<V>(
-      partitionKey: string,
-      designname: string,
-      viewname: string,
-      params: DocumentViewParams,
-      callback?: Callback<DocumentViewResponse<V,D>>
-    ): Promise<DocumentViewResponse<V,D>>;
-    partitionedViewAsStream<V>(
-      partitionKey: string,
-      designname: string,
-      viewname: string,
-      params: DocumentViewParams
-    ): Request;
   }
 
   interface AttachmentData {
@@ -383,14 +341,14 @@ declare namespace nano {
       contenttype: string,
       params: any
     ): Request
-    get(docname: string, attname: string, callback?: Callback<Buffer>): Promise<Buffer>;
+    get(docname: string, attname: string, callback?: Callback<any>): Promise<any>;
     getAsStream(docname: string, attname: string): Request;
     get(
       docname: string,
       attname: string,
       params: any,
-      callback?: Callback<Buffer>
-    ): Promise<Buffer>;
+      callback?: Callback<any>
+    ): Promise<any>;
     destroy(docname: string, attname: string, callback?: Callback<any>): Promise<any>;
     destroy(
       docname: string,
@@ -491,11 +449,9 @@ declare namespace nano {
   // View
   // -------------------------------------
 
-  type DocumentInfer<D> = (doc: D & Document) => void
   interface View<D> {
-    map?:DocumentInfer<D>;
-    reduce?: string | DocumentInfer<D>
-    
+    map?(doc: D & Document): void;
+    reduce?(doc: D & Document): void;
   }
 
   interface ViewDocument<D> extends IdentifiedDocument {
@@ -793,6 +749,11 @@ declare namespace nano {
   // Document scope request and response
   // -------------------------------------
 
+  interface DocumentLookupFailure {
+    key: string;
+    error: string;
+  }
+
   interface DocumentResponseRowMeta {
     id: string;
     key: string;
@@ -803,21 +764,6 @@ declare namespace nano {
 
   interface DocumentResponseRow<D> extends DocumentResponseRowMeta {
     doc?: D & Document;
-  }
-
-  // http://docs.couchdb.org/en/latest/api/database/bulk-api.html#post--db-_bulk_docs
-  interface DocumentBulkResponse {
-    // Document ID. Available in all cases
-    id: string;
-
-    // New document revision token. Available if document has saved without errors.
-    rev?: string;
-
-    // Error type. Available if response code is 4xx
-    error?: string;
-
-    // Error reason. Available if response code is 4xx
-    reason?: string;
   }
 
   // http://docs.couchdb.org/en/latest/api/database/common.html#post--db
@@ -1035,14 +981,14 @@ declare namespace nano {
 
   interface DocumentFetchResponse<D> {
     offset: number;
-    rows: Array<DocumentResponseRow<D>>;
+    rows: Array<DocumentResponseRow<D> | DocumentLookupFailure>;
     total_rows: number;
     update_seq?: number;
   }
 
   interface DocumentFetchRevsResponse {
     offset: number;
-    rows: DocumentResponseRowMeta[];
+    rows: Array<DocumentResponseRowMeta | DocumentLookupFailure>;
     total_rows: number;
     update_seq?: number;
   }
@@ -1073,28 +1019,6 @@ declare namespace nano {
 
     highlights?: object;
 
-  }
-
-
-  // https://docs.couchdb.org/en/latest/partitioned-dbs/index.html
-  interface PartitionInfoResponse {
-    // Database name
-    db_name:  string;
-
-    // Partition sizes
-    sizes: {
-      active: number;
-      external: number;
-    }
-
-    // Partition name
-    partition: string;
-
-    // Document count
-    doc_count: number;
-
-    // Deleted document count
-    doc_del_count: number;
   }
 
   // https://console.bluemix.net/docs/services/Cloudant/api/search.html#queries
@@ -1269,32 +1193,9 @@ declare namespace nano {
   type MangoValue = number | string | Date | boolean | null;
 
   // http://docs.couchdb.org/en/latest/api/database/find.html#selector-syntax
-
-  enum ConditionOperands {
-    $lt = '$lt',
-    $lte = '$lte',
-    $eq = '$eq',
-    $ne = '$ne',
-    $gte = '$gte',
-    $gt = '$gt'
+  interface MangoSelector {
+    [key: string]: MangoSelector | MangoValue | MangoValue[];
   }
-
-  enum ArrayFieldOperands {
-    $in = '$in',
-    $nin = '$nin'
-  }
-
-  enum CombinationOperands {
-      $or = '$or',
-      $and = '$and',
-      $nor = '$nor',
-      $all = '$all'
-  }
-
-  type MangoSelector = { [key: string]: MangoSelector | MangoValue | MangoValue[]; }
-    | Partial<{ [key in ConditionOperands]: MangoValue; }>
-    | Partial<{ [key in ArrayFieldOperands]: MangoValue[] }>
-    | Partial<{ [key in CombinationOperands]: MangoSelector[] }>
 
   // http://docs.couchdb.org/en/latest/api/database/find.html#sort-syntax
   type SortOrder = string | string[] | { [key: string]: 'asc' | 'desc' };
@@ -1343,7 +1244,7 @@ declare namespace nano {
   interface MangoResponse<D> {
     // Array of documents matching the search. In each matching document, the fields specified in
     // the fields part of the request body are listed, along with their values.
-    docs: (D & {_id: string, _rev:string})[];
+    docs: D[];
 
     // A string that enables you to specify which page of results you require. Used for paging through result sets.
     bookmark?: string;
@@ -1372,42 +1273,6 @@ declare namespace nano {
 
     // Total execution time in milliseconds as measured by the database.
     execution_time_ms: number;
-  }
-
-  // http://docs.couchdb.org/en/latest/api/database/find.html#db-index
-  interface CreateIndexRequest {
-    // JSON object describing the index to create
-    index: {
-      // Array of field names following the sort syntax.
-      fields: SortOrder[],
-
-      // A selector to apply to documents at indexing time, creating a partial index.
-      partial_filter_selector?: MangoSelector
-    },
-
-    // Name of the design document in which the index will be created.
-    ddoc?: string
-
-    // Name of the index. If no name is provided, a name will be generated automatically.
-    name?: string,
-
-    // Can be "json" or "text". Defaults to json.
-    type?: 'json' | 'text',
-
-    // This field sets whether the created index will be a partitioned or global index.
-    partitioned?: boolean
-  }
-
-  // http://docs.couchdb.org/en/latest/api/database/find.html#db-index
-  interface CreateIndexResponse {
-    // Flag to show whether the index was created or one already exists. Can be “created” or “exists”.
-    result: string,
-
-    // Id of the design document the index was created in.
-    id: string,
-
-    // Name of the index created.
-    name: string
   }
 }
 
